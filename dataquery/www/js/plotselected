@@ -1,0 +1,25 @@
+    $("#plotArea").bind(
+      "plotselected",
+      function( event, ranges ) {
+        var opts = {};
+
+        // Step through the selection ranges to explicitly set the y-axis
+        // extents, since $.plot() doesn't listen to y<x>axis after x=2.
+        // Let the others pass through, as they either work (xaxis, x2axis,
+        // yaxis), or we don't care about them (x3axis, ...)
+
+        for( var range in ranges ) {
+          var matches = range.match( /y(\d+)axis/ );
+          if( matches ) {
+            var yaxis = parseInt( matches[1], 10 );
+            options.yaxes[yaxis].min = ranges[range].from;
+            options.yaxes[yaxis].max = ranges[range].to;
+          } else {
+            opts[range] = { min: ranges[range].from, max: ranges[range].to };
+          }
+        }
+
+        plot =
+          $.plot( "#plotArea", data, $.extend( true, {}, options, opts ) );
+      }
+    );

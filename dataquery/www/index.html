@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=9">
+        <meta charset="utf-8">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <meta name="apple-mobile-web-app-title" content="gbootstrap">
+        <link rel="shortcut icon" href="favicon.ico">
+        <link rel="apple-touch-icon" href="apple-touch-icon-precomposed.png">
+        <link rel="stylesheet" href="css/normalize.css">
+        <link href="css/bootstrap.css" rel="stylesheet">
+        <link rel="stylesheet" href="css/main.css">
+        <link rel="stylesheet" href="css/carousel.css">
+        <link rel="stylesheet" href="css/bootstrap-datetimepicker.css">
+        <script src="js/vendor/modernizr-2.6.2.min.js"></script>
+    </head>
+    <body>
+        <!--[if lt IE 9]>
+		<script src="js/html5.min.js"></script>
+		<p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+
+<!-- Begin Application-->
+
+<nav class="navbar navbar-default navbar-fixed-top " role="navigation">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" hef="#"><img src = "img/castle.png"> Dataquery 2.0</a>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <div class="form-group navbar-form">
+          <input type="text" class="form-control" placeholder="Search" id = "query1">
+          <button class="btn btn-default" onclick = "DQ.query($( '#query1').val());">Search</button>
+        </div>
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+
+    <div class="container-full">
+
+      <div class="row">
+       
+        <div class="col-lg-12 text-center v-center">
+          
+          <h1>Dataquery 2.0</h1>
+          <p class="lead">Query Timeseries from USACE Northwestern Division</p>
+          
+          <br>
+          
+          <form class="col-lg-12">
+            <div class="input-group input-group-lg col-sm-offset-4 col-sm-4">
+              <input type="text" class="center-block form-control input-lg" title="Query" placeholder="Search for data" id = "query2">
+              <span class="input-group-btn"><button class="btn btn-lg btn-primary" type="button" onclick = "DQ.query($( '#query2').val());">Search</button></span>
+            </div>
+          </form>
+        </div>
+        
+      </div> <!-- /row -->
+    </div> <!-- container-->
+
+    <div class="container-app">
+      <div class="row row-offcanvas row-offcanvas-left">
+          <div class="row-offcanvas row-offcanvas-right">
+            <div class="col-xs-6 col-sm-2 sidebar-offcanvas" id="sidebarLeft" role="navigation">
+               <p class="visible-xs">
+                <button class="btn btn-primary btn-xs" type="button" data-toggle="offcanvas"><i class="glyphicon glyphicon-chevron-left"></i></button>
+              </p>
+              <div class="well sidebar-nav" id = "timeseriesSelect">
+          
+    </div>
+              </div><!--/.sidebar-nav -->
+            </div><!--/span-->
+            
+            <div class="col-xs-12 col-sm-8">
+              <p class="pull-left visible-xs">
+                <button class="btn btn-primary btn-xs" type="button" data-toggle="offcanvas"><i class="glyphicon glyphicon-chevron-left"></i></button>
+              </p>
+              <p class="pull-right visible-xs">
+                <button class="btn btn-primary btn-xs" type="button" data-toggle="offcanvasright"><i class="glyphicon glyphicon-chevron-right"></i></button>
+              </p>
+              <div class="jumbotron" id="plotArea">
+                <p>Click zoomable plot, parameters are grouped to an axis by units</p>
+              </div>
+              <div class="row">
+                <div class = "pre-scrollable col-sm-12 col-lg-12"id = "tableArea">
+                  <h2>Data Table</h2>
+                </div><!--/span-->
+              </div><!--/row-->
+              <div class="row">
+                <div class="well col-sm-12 col-lg-12" id = "timeseriesList">
+                </div><!--/span-->
+              </div><!--/row-->
+            </div><!--/span-->
+    
+            <div class="col-xs-6 col-sm-2 sidebar-offcanvas" id="sidebarRight" role="navigation">
+               <p class="visible-xs">
+                <button class="btn btn-primary btn-xs" type="button" data-toggle="offcanvas"><i class="glyphicon glyphicon-chevron-left"></i></button>
+              </p>
+              <div class="well sidebar-nav">
+              <p style = "cursor: help;" data-toggle="tooltip" data-placement="top" title="Must be in the format: ????w????d0-23h0-59m Example: 10w2d0h0m would yield a time period of 10 weeks, 2 days, 0 hours and 0 minutes.">Lookback:</p>
+              <input type="text" class="center-block form-control input-lg" id="lookback" placeholder="" value="7d">
+              <p style = "cursor: help;" data-toggle="tooltip" data-placement="top" title="Must be in the format: ????w????d0-23h0-59m Example: 10w2d0h0m would yield a time period of 10 weeks, 2 days, 0 hours and 0 minutes.">Lookforward:</p>
+              <input type="text" class="center-block form-control input-lg" id="lookforward" placeholder="">
+	      <hr>
+              <p>Start Date: (mm/dd/yyyy)</p>
+              <div class='input-group date' id='startdate_input'>
+                    <input type='text' class="form-control" id = "startdate">
+                    <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span>
+                    </span>
+              </div>
+              <p>End Date: (mm/dd/yyyy)</p>
+              <div class='input-group date' id='enddate_input'>
+                    <input type='text' class="form-control" id = "enddate">
+                    <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span>
+                    </span>
+              </div>
+              <hr>
+              <button class="btn btn-block btn-primary" type="button" onclick = "DQ.loadData();" id = "togglePlot">Refresh</button> <br>
+              <button class="btn btn-block btn-primary" type="button" onclick = "DQ.togglePlot();" id = "togglePlot">Plot On</button> <br>
+              <button class="btn btn-block btn-primary" type="button" onclick = "DQ.toggleTable();" id = "toggleTable">Data On</button><br>
+              <button class="btn btn-block btn-primary" type="button" onclick = "DQ.toggleAdvanced();" id = "advanced">Advanced Options</button><br>
+              <div id="advancedArea">
+              <p style = "cursor: help;" data-toggle="tooltip" data-placement="top" title="Select the a specified water year as the timewindow
+              (Oct 1 - Sep 30)">Water Year:</p>
+              <select class="form-control" id = "WYselect">
+              </select>
+              <p>Snap:</p>
+              <input type="text" class="center-block form-control input-lg" id="snapBox" placeholder="enter interval: (e.g. 6h)">
+              <p>Average:</p>
+              <input type="text" class="center-block form-control input-lg" id="avgBox" placeholder="enter interval: (e.g. 6h)">
+              <hr>
+              <button class="btn btn-block btn-primary" type="button" onclick = "DQ.exportCSV();" id = "exportCSV">export CSV</button><br>
+              <button class="btn btn-block btn-primary" type="button" onclick = "DQ.exportJSON();" id = "exportJSON">export JSON</button><br>
+              <button class="btn btn-block btn-primary" type="button" onclick = "DQ.makeLink();" id = "makeLink">Make Link</button><br>
+              </div>
+              </div><!--/.well -->
+            </div><!--/span-->
+          
+        </div>
+
+      </div><!--/row-->
+
+
+    </div> <!-- /container -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <!-- ================================================== -->
+        <script src="js/vendor/jquery-1.11.1.min.js"></script>
+        <script src="js/vendor/bootstrap.min.js"></script>
+        <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.11.1.min.js"><\/script>')</script>
+        <script src="js/leaflet.js">
+        <script src="js/plugins.js"></script>
+        <script src="js/moment-with-locales.js"></script>
+        <script src="js/bootstrap-datetimepicker.js"></script>
+        <script src="js/main.js"></script>
+        <script src="js/flot/jquery.flot.js"></script>
+        <script src="js/flot/jquery.flot.time.js"></script>
+        <script src="js/flot/jquery.flot.resize.js"></script>
+        <script src="js/flot/jquery.flot.canvas.js"></script>
+        <script src="js/flot/jquery.flot.axislabels.js"></script>
+        <script src="js/flot/jquery.flot.selection.js"></script>
+        <script src="js/flot/base64.js"></script>
+        <script src="js/flot/canvas2image.js"></script>
+        <script src="js/flot/jquery.flot.saveAsImage.js"></script>
+        <script>
+         $(document).ready(init());
+        </script>
+    </body>
+</html>

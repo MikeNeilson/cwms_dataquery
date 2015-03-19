@@ -1,0 +1,123 @@
+#!/usr/local/bin/python
+#Web Service for data presented as HTML
+#27 Feb 2011
+#Author: Gunnar Leffler
+
+import sys,os,time,datetime
+import cx_Oracle
+sys.path.append("/usr/dd/common/web_service/webexec")
+import cgi,wslib,atexit
+import cgitb;cgitb.enable()
+
+ws = wslib.ddWebService()
+config = wslib.ddWebServiceConfig()
+valTable = {} #Global variable for output values
+
+def generateBlankLine (count):
+  output = []
+  for i in xrange (count):
+    output.append(None)
+  return output
+
+def addValue (column,count,_datetime,value):
+  global valTable
+  if _datetime in valTable:
+    t = valTable[_datetime]
+  else:
+    valTable[_datetime] = generateBlankLine (count)
+  valTable[_datetime][column] = value
+  
+def outputHTML (config):
+  ws.updateConfig(config)
+  wsData = []
+  print "Content-Type: text/html\n"
+  output = ""
+  output += '<table class ="ws"><thead class = "ws"><tr><th class = "ws">Date Time</th>'
+  colCount = len(config.settings["id"])
+  i = 0
+  for tsid in config.settings["id"]:
+    t = ws.readTS(tsid[0],config.settings["start"],config.settings["end"],tsid[1])
+    if t != None:
+      if "interpolate" in config.settings:
+        ts = wslib.timeSeries(t)
+        interval = ts.parseTimedelta(config.settings["interpolate"])
+        if interval >= datetime.timedelta(seconds=30): #We don't want an absurd interval to tie up system resources
+          t = ts.interpolate(interval).data
+      if "snap" in config.settings:
+        ts = wslib.timeSeries(t)
+        interval = ts.parseTimedelta(config.settings["snap"])
+        if interval >= datetime.timedelta(seconds=30): #We don't want an absurd interval to tie up system resources
+          t = ts.snap2(interval,interval/2).data
+      if "hardsnap" in config.settings:
+        ts = wslib.timeSeries(t)
+        interval = ts.parseTimedelta(config.settings["hardsnap"])
+        if interval >= datetime.timedelta(seconds=30): #We don't want an absurd interval to tie up system resources
+          try:
+            t1 = ts.data[0][0]
+            t2 = datetime.datetime(year=t1.year,month=t1.month,day=t1.day)
+            t = ts.snap(interval,interval/2,starttime=t2).data
+          except:
+            t = []
+      if "average" in config.settings:
+        ts = wslib.timeSeries(t)
+        interval = ts.parseTimedelta(config.settings["average"])
+        if interval >= datetime.timedelta(seconds=30): #We don't want an absurd interval to tie up system resources
+          t = ts.average(interval).data
+      if "maximum" in config.settings:
+        ts = wslib.timeSeries(t)
+        interval = ts.parseTimedelta(config.settings["maximum"])
+        t = ts.maxmin(interval,lambda x,y:x>y).data
+      if "minimum" in config.settings:
+        ts = wslib.timeSeries(t)
+        interval = ts.parseTimedelta(config.settings["minimum"])
+        t = ts.maxmin(interval,lambda x,y:x<y).data
+      if "systdgfilter" in config.settings:
+        ts = wslib.timeSeries(t)
+        interval = ts.parseTimedelta(config.settings["systdgfilter"])
+        if interval >= datetime.timedelta(seconds=30) and len(ts.data) > 0: #We don't want an absurd interval to tie up system resources
+          t1 = ts.data[0][0]
+          t2 = datetime.datetime(year=t1.year,month=t1.month,day=t1.day,hour=t1.hour)
+          ts = ts.timeshift(t1-t2)
+          t = ts.interpolate(interval).data
+      for d in t:
+        addValue(i,colCount,d[0],d[1])
+    if tsid[1] == "default":
+      tsid[1]=ws.getDefaultUnits (tsid[0])
+    output += "<th class = \"ws\">"+tsid[0]+"["+tsid[1]+"]\t"+"</th>"
+    i += 1
+  output += "</tr></thead>"
+  print output
+  #display the data
+  keylist = valTable.keys()
+  while None in keylist:
+    keylist.remove(None)
+  keylist.sort()
+  cl = "ws"
+  for key in keylist:
+    if cl == "wsodd":
+      cl = "ws"
+    else:
+      cl = "wsodd"
+    output = '<tr class="'+cl+'"><td class = "ws">'+ws.strftime(key,config.settings["timeformat"],usemidnight=config["midnight"])+'\t</td>'
+    for val in valTable[key]:
+      output += "<td>"
+      if val != None:
+        output += "%0.3f\t"%(val)
+      else:
+        output+= "\t"
+      output += "</td>"
+    output += "</tr>"
+    print output
+  print "</table>"
+
+#------------------------#
+#Beginning of Service
+#------------------------#
+config.loadConfig("../config/config.json")
+ws.updateConfig(config)
+ws.connect()
+if ws.status != "OK":
+  raise Exception(ws.status)
+atexit.register(ws.disconnect)
+config.parseParameters(cgi.FieldStorage())
+outputHTML(config)

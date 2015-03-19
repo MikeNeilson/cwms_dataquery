@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+</head>
+
+<script type="text/javascript">
+    function removeLastComma (myUrl)
+    {
+        if (myUrl.substring(myUrl.length-1) == ",")
+        {
+            myUrl = myUrl.substring(0, myUrl.length-1);
+        }
+        return myUrl;
+    }
+
+    function GetSelectedItem() {
+
+        len = document.getParams.tsids.length
+        i = 0
+        chosen = ""
+        numSelections = 0
+
+        var sel = document.getElementById("tsids");
+        var listLength = sel.options.length;
+
+
+        for(var i=0;i<listLength;i++) {
+            if (sel.options[i].selected) {
+                chosen = chosen + sel.options[i].text;
+
+                chosen = chosen + ',';
+            }
+        }
+
+
+        s = removeLastComma(chosen)
+        chosen = s
+
+        newURL = "../webexec/lineplot?series=" + chosen + "&start=12-01-2011&end=12-27-2011&plotsize=10.0x4.94&title=Multi-Time Series Example 1";
+        //newURL = "../cgi-bin/dsMultParasite4.py?id=" + chosen + "&start=11-01-2011&end=11-27-2011";
+        document.getElementById('graph1').src = newURL;
+        document.getElementById('return_values').innerHTML  = newURL;
+
+
+        return false
+    }
+</script>
+
+<body>
+<p id = "title_header">Test Chart from Web Service Data</p>
+<div>
+    <table style="width:100%;">
+        <tr>
+            <td height="500">
+                <img id="graph1" src="../cgi-bin/dsMultSeries2.py?id=ANTI.Flow.Ave.~1Day.1Day.USBR-RAW%20cfs,BRFI.Flow.Ave.1Day.1Day.USBR-RAW%20cfs,BRFI.Temp-Water.Inst.1Hour.0.USBR-RAW%20F&start=11-01-2011&end=11-27-2011" />
+            </td>
+            <td>
+                <form name = "getParams" id = "getParams">
+                    <select NAME="tsids" id="tsids" SIZE=0 multiple>
+                        <option VALUE="0">id:ANTI.Flow.Ave.~1Day.1Day.USBR-RAW|units:cfs|lcolor:881111|ltype:o|lwidth:0.10
+                        <option VALUE="1">id:BRFI.Flow.Ave.~1Day.1Day.USBR-RAW|units:cfs
+                        <option VALUE="2">id:BRFI.Temp-Water.Inst.1Hour.0.USBR-RAW|units:F
+                        <option VALUE="3">id:LAPO.Flow.Inst.15Minutes.0.USGS-RAW|units:cfs
+                        <option VALUE="4">id:LAPO.Temp-Water.Inst.15Minutes.0.GOES-RAW|units:F|lcolor:777777|ltype:-|lwidth:0.75
+                        <option VALUE="5">id:LAPO.Stage.Inst.15Minutes.0.GOES-RAW|units:ft|lcolor:118811|ltype:--|label:Stage(ft)|lfill:1
+                    </select>
+                    <input type="submit" name="Submit" value="Get Selected TSIDs"  onClick = "return GetSelectedItem()">
+                </form>
+            </td>
+        </tr>
+
+    </table>
+</div>
+<div>
+    <p id = "return_values">&nbsp;
+    </p>
+    <p id = "new_url">&nbsp;
+    </p>
+</div>
+</body>
+</html>
+
+
+
+
+

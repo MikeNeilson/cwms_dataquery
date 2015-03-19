@@ -1,0 +1,101 @@
+#!/usr/local/bin/python
+#Web Service for JSON data
+#27 Feb 2011
+#Author: Gunnar Leffler / Brian A. Baley ACSI
+
+import sys,os,time,datetime
+import cx_Oracle
+sys.path.append("/usr/dd/common/web_service/webexec")
+import cgi,wslib,atexit
+import cgitb;cgitb.enable()
+
+#=============================================-
+# JSON Handlers
+#=============================================
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
+#---------------------------------------------
+class JSONDateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime.date, datetime.datetime)):
+            return obj.isoformat()
+        else:
+            return json.JSONEncoder.default(self, obj)
+#---------------------------------------------
+
+def datetime_decoder(d):
+    if isinstance(d, list):
+        pairs = enumerate(d)
+    elif isinstance(d, dict):
+        pairs = d.items()
+    result = []
+    for k,v in pairs:
+        if isinstance(v, basestring):
+            try:
+                # The %f format code is only supported in Python >= 2.6.
+                # For Python <= 2.5 strip off microseconds
+                # v = datetime.datetime.strptime(v.rsplit('.', 1)[0],
+                #     '%Y-%m-%dT%H:%M:%S')
+                v = datetime.datetime.strptime(v, '%Y-%m-%dT%H:%M:%S.%f')
+            except ValueError:
+                try:
+                    v = datetime.datetime.strptime(v, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+        elif isinstance(v, (dict, list)):
+            v = datetime_decoder(v)
+        result.append((k, v))
+    if isinstance(d, list):
+        return [x[1] for x in result]
+    elif isinstance(d, dict):
+        return dict(result)
+#---------------------------------------------
+def dumps(obj):
+    return json.dumps(obj, cls=JSONDateTimeEncoder)
+
+def loads(obj):
+    return json.loads(obj, object_hook=datetime_decoder)
+#=============================================
+# end JSON handlers
+#=============================================
+
+
+ws = wslib.ddWebService()
+config = wslib.ddWebServiceConfig()
+
+def outputJSON (config):
+  maxLen = 0
+  wsData = []
+  print 'Content-Type: application/json\n'
+  
+  for tsid in config.settings["id"]:
+    t = ws.readTSJSON(tsid[0],config.settings["start"],config.settings["end"],tsid[1])
+    if t != None:
+      if len(t) > maxLen: maxLen = len(t)
+    else:
+      t = []
+    wsData.append(t)
+    
+
+  print json.dumps(json.loads(wsData))
+  #return dumps(data, use_decimal=True)
+  # cherrypy : return HttpResponse(simplejson.dumps(to_json), mimetype='application/json')
+  
+
+#------------------------#
+#Beginning of Service
+#------------------------#
+config.loadConfig("../config/config.json")
+ws.updateConfig(config)
+ws.connect()
+if ws.status != "OK":
+  raise Exception(ws.status)
+atexit.register(ws.disconnect)
+config.loadConfig("../config/config.json")
+config.parseParameters(cgi.FieldStorage())
+outputJSON(config)
+
+

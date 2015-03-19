@@ -1,0 +1,483 @@
+/*---------------------------------------------------------
+  __ \          |                                               
+  |   |   _` |  __|   _` |   _` |  |   |   _ \   __|  |   |     
+  |   |  (   |  |    (   |  (   |  |   |   __/  |     |   |     
+ ____/  \__,_| \__| \__,_| \__, | \__,_| \___| _|    \__, |     
+                               _|                    ____/  
+  v2.0: main.js                                 
+---------------------------------------------------------*/
+
+var dataquery = function () {
+  //-----Settings
+  this.navbarToggle = true;  
+  this.plotToggle = true;
+  this.tableToggle = true;
+  this.webServicePath = "../../web_service/webexec/getjson";
+  this.htmlServicePath = "../../web_service/webexec/html";
+  this.csvServicePath = "../../web_service/webexec/ecsv";
+  //-----Validated input
+  this.lookback = 7;
+  this.startdate = "";
+  this.lookforward = 0;
+  this.enddate = "";
+  this.status = "OK"; 
+  //-----Data
+  this.data = {};//hydroJSON object for data currently being used
+  this.tsquery
+  this.timeseriesList = []; //list of timeseries
+};
+
+dataquery.prototype = {
+
+  initialize: function () {
+  },
+
+ /**
+  * method either shows or hides plot in the display
+  */
+
+  togglePlot: function () {
+    console.log (this.plotToggle);
+    if (this.plotToggle == true){ 
+      this.plotToggle = false;
+     $("#btn_plot").text("Plot Off");
+      $("#plotArea").hide()
+    } else{
+      this.plotToggle = true;
+      $("#btn_plot").text("Plot On");
+      $("#plotArea").show()
+    }
+  },
+
+ /**
+  * method either shows or hides data table in the display
+  */
+
+  toggleTable: function () {
+    console.log (this.tableToggle);
+    if (this.tableToggle == true){ 
+      this.tableToggle = false;
+      $("#tableArea").hide()
+    } else{
+      this.tableToggle = true;
+      $("#tableArea").show()
+    }
+  },
+  
+
+ /**
+  * method will reset the interface by:
+  *  clearing plot
+  *  cleaning list of timeseries
+  *  clearing timeseries selection area
+  *  clearing data table
+  * human: Nick 
+  * --- 12/29/2014
+  */
+
+  clear: function () {
+    document.getElementById("plotArea").innerHTML = " ";
+    document.getElementById("tableArea").innerHTML = " ";
+    document.getElementById("timeseriesList").innerHTML = " ";
+    document.getElementById("lookback").value = "7";
+    document.getElementById("lookforward").value = " ";
+    document.getElementById("startdate").value = " ";
+    document.getElementById("enddate").value = " ";
+  },
+
+ /*
+  *  draw a new plot in the #plotArea based on the timeseries in this.data
+  *  human: Mike
+  */
+
+  drawPlot: function () {
+
+    console.log( "Drawing plot for " + JSON.stringify( this.data ) );
+
+    var options = {
+      lines: { show: true },
+      points: { show: false },
+      xaxis: {
+        mode: "time",
+        timeformat: "%m/%d %H:%M",
+        timezone: "browser",
+        font: { size: 14, color: "#000" }
+      },
+      yaxes: [],
+      legend: {
+        sorted: true
+      },
+      selection: {
+        mode: "xy"
+      }
+    };
+
+    var data = [];
+    var plot;
+
+    for( var station in this.data ) {
+      for( var ts_id in this.data[station].timeseries ) {
+        if( !this.data[station].timeseries[ts_id].values ) {
+          continue;
+        }
+        var units = this.data[station].timeseries[ts_id].units;
+        var ts = { "label": ts_id + "(" + units + ")" }
+        // Check for known axis, else create a new one
+        for( var i = 0; i < options.yaxes.length; i++ ) {
+          if( options.yaxes[i].axisLabel == units ) {
+            ts.yaxis = i + 1;
+            continue;
+          }
+        }
+        if( !ts.yaxis ) {
+          var yaxis = { axisLabel: units };
+          if( options.yaxes.length % 2 ) {
+            yaxis.position = "right";
+          }
+          options.yaxes.push( yaxis );
+          ts.yaxis = options.yaxes.length;
+        }
+        ts.data = this.data[station].timeseries[ts_id].values;
+        for( var i = 0; i < ts.data.length; i++ ) {
+          ts.data[i].pop();			// remove quality flag
+          ts.data[i][0] = ( new Date( ts.data[i][0] ) ).getTime();
+        }
+        data.push( ts );
+      }
+    }
+    plot = $.plot( "#plotArea", data, options );
+
+    $("#plotArea").bind(
+      "plotselected",
+      function( event, ranges ) {
+        var opts = {};
+        for( var range in ranges ) {
+          opts[range] = { min: ranges[range].from, max: ranges[range].to };
+        }
+        plot =
+          $.plot( "#plotArea", data, $.extend( true, {}, options, opts ) );
+      }
+    );
+
+    $("#reset").click(
+      function() {
+	plot = $.plot( "#plotArea", data, options );
+      }
+    );
+  },
+
+/**
+  * method downloads curent query as CSV
+  * human: Gunnar 
+  */
+
+  exportCSV: function () {
+    var ids = [];
+    for (var sta in this.data) {
+       for (var tsid in this.data[sta]["timeseries"]) {
+         ids.push(tsid+":units="+this.data[sta]["timeseries"][tsid]["units"])
+       }
+    }
+    var inputs = this.validateInput();
+    var inputlist = {"backward":"lookback","forward":"lookforward","startdate":"startdate","enddate":"enddate"};
+    var payload  = {"id":ids.join("|"),
+     "headers":"true",
+     "filename":"dataquery.csv"
+    };
+    console.log(inputs);
+    for (var key in inputs){
+      if (key in inputlist) {
+        payload[inputlist[key]] = inputs[key];
+      }
+    }
+    
+     window.open(this.csvServicePath+"?"+$.param(payload),'_newtab');
+  },
+
+
+ /**
+  * method will go to the webservice and plot in the #plotArea based on the timeseries in this.data
+  * human: Gunnar 
+  */
+
+  drawTable: function () {
+    var ids = [];
+    for (var sta in this.data) {
+       for (var tsid in this.data[sta]["timeseries"]) {
+         ids.push(tsid+":units="+this.data[sta]["timeseries"][tsid]["units"])
+       }
+    }
+    var inputs = this.validateInput();
+    var inputlist = {"backward":"lookback","forward":"lookforward","startdate":"startdate","enddate":"enddate"};
+    var payload  = {"id":ids.join("|"),
+     "headers":"true",
+    };
+    console.log(inputs);
+    for (var key in inputs){
+      if (key in inputlist) {
+        payload[inputlist[key]] = inputs[key];
+      }
+    }
+    
+    $.get(this.htmlServicePath,payload).done(function( txt ){
+      $("#tableArea").html(txt.replace ('="ws"','="table table-striped"'));
+    });
+  },
+
+ /**
+  *  method will draw a new plot in the #plotArea based on the timeseries in this.data
+  *  human: Gunnar
+  */
+
+  drawTimeseriesList: function () {
+    var template = '<div class="btn-group"><button type="button" class="btn btn-danger"  onclick = "DQ.removeTs(IDX);"><span class="glyphicon glyphicon-remove-circle"></span></button><button type="button" class="btn btn-primary">TSID</button></div>';
+    var output = "";
+    for (var i = 0; i < this.timeseriesList.length; i++){
+      output += template.replace("TSID",this.timeseriesList[i]).replace("IDX",i+"");
+    }
+    $("#timeseriesList").html(output);
+  },
+
+
+ /**
+  * method is a callback to refresh display after data is loaded.
+  * human: Gunnar 
+  */
+
+  refreshCallback: function (that) {
+  },
+
+  /** 
+   * method queries hydroJSON webservice and populate timeseries selection pane 
+   * human: Gunnar 
+   */
+
+  query: function (keywords) {
+    var params = {"tscatalog":"[\""+keywords+"\"]"}
+    console.log(JSON.stringify(params));
+    $.get( this.webServicePath, params ).done(function ( response ) {
+      console.log(response);
+      var data = jQuery.parseJSON(response);
+      var output = '<div class="btn-group-vertical" role="group">';
+      for (var sta in data){
+        output += '<div class="btn-group" role="group"><button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"  style="margin-bottom:4px;white-space: normal;">';
+        output += data[sta]["name"]+' ('+sta+')</button>';
+        output += '<ul class="dropdown-menu" role="menu">';
+        for (var ts in data[sta]["timeseries"]) {
+          output += '<li><a onclick = "DQ.addTs(this.innerHTML);">'+ts+'</a></li>';
+        }
+       output += '</ul></div>';
+      }
+      output += '</div>'; 
+     $("#timeseriesSelect").html(output);
+    });
+    this.toggleNavbar();
+  },
+ 
+  /** 
+   * method queries hydroJSON webservice and stores the response in this.data 
+   * human: Gunnar 
+   */
+
+  loadData: function () {
+     var payload = {};
+     payload = this.validateInput();
+     if( payload == "false" ) { 
+        window.alert( this.status );
+        return false;
+     }
+     payload["query"] = JSON.stringify(this.timeseriesList);
+     console.log( "Payload: " + JSON.stringify( payload ) );
+     var that = this;
+     $.get(this.webServicePath,payload).done(function (response) {
+       that.data = $.parseJSON(response);
+       that.drawPlot();
+       that.drawTable();
+     });
+  },
+
+ /* method will query hydroJSON webservice and add a TS to the timeseries list, table and plot
+  * human: Gunnar
+  */
+  addTs: function (tsid) {
+    this.timeseriesList.push(tsid);
+    this.drawTimeseriesList();
+    this.loadData();
+  },
+ 
+  /**
+   * method will remove TS from the timeseries list, table and plot
+   * human: Gunnar
+   */
+  removeTs: function (tsidx) {
+    this.timeseriesList.splice(parseInt(tsidx),1);
+    console.log(this.timeseriesList);
+    this.drawTimeseriesList();
+    this.loadData();
+
+  },
+
+ /**
+  *method will attempt to populate internal variables with validated input.
+  * returns a JSON object with properites e.g. {"backward":"7d", "forward":"1d"}
+  * blank input should be ommited from JSON object
+  * returns false if unsuccessful
+  * human: Nick
+  * 01-11-2015
+  */
+  validateInput: function () {
+   //var output = '{ "backward" :$("#lookback").val() }'; //Stub for validateInput
+   var output = {};
+   var datePat =/^([0-9]{2})\/([0-9]{2})\/([0-9]{4})$/;
+
+   //var lb = document.getElementById("lookback").getAttribute("placeholder");
+   var lb = document.getElementById("lookback").value;
+   var lf = document.getElementById("lookforward").value;
+   var sd = document.getElementById("startdate").value;
+   var ed = document.getElementById("enddate").value;
+   //window.alert('lookback = ' + lb);
+   //window.alert('lookforward = ' + lf);
+   //window.alert('startdate = ' + sd);
+   //window.alert('enddate = ' + ed);
+   if (lb!="") output ["backward"] = lb;
+   if (lf!="") output ["forward"] = lb;
+
+/*   -Commented out 1/12/2015, should be able to parse 7d12h15m type values
+     if (lb!="" && isNaN(lb)) {
+     this.status = "Error! Lookback must be a valid number.";
+     document.getElementById("lookback").focus();
+     return false;
+   }
+   else if (lf!="" && isNaN(lf)) {
+     this.status = "Error! Lookforward must be a valid number.";
+     document.getElementById("lookforward").focus();
+     return false;
+   }
+   else */
+
+    if (lb=="" && sd!="") {
+     if (this.isValidDate(sd)!="") 
+     {
+        output["startdate"] = this.isValidDate(sd);
+        document.getElementById("startdate").focus();
+     }
+   }
+   else if (lf=="" && ed!="") {
+     if (this.isValidDate(ed)!="") 
+     {
+        output["enddate"] = this.isValidDate(ed);
+        document.getElementById("enddate").focus();
+     }
+   }
+   else if (lb=="" && lf=="" && sd!="" && ed!="" && sd>ed) {
+     this.status = "Error! Start Date must be before End Date.";
+     document.getElementById("startdate").focus();
+     return false;
+   }
+   return output;
+  },
+
+  isValidDate: function (dateStr) {
+    var msg = "";
+    // Checks for the following valid date formats:
+    // MM/DD/YYYY   
+ 
+    // To require a 4 digit year entry, use this line instead:
+    var datePat =/^([0-9]{2})\/([0-9]{2})\/([0-9]{4})$/;
+ 
+    var matchArray = dateStr.match(datePat); // is the format ok?
+    if (matchArray == null) {
+        msg = "Date is not in a valid format.";
+        return msg;
+    }
+ 
+    month = matchArray[1]; // parse date into variables
+    day = matchArray[2];
+    year = matchArray[3];
+    
+    if (month < 1 || month > 12) { // check month range
+        msg = "Month must be between 1 and 12.";
+        return msg;
+    }
+ 
+    if (day < 1 || day > 31) {
+        msg = "Day must be between 1 and 31.";
+        return msg;
+    }
+ 
+    if ((month==4 || month==6 || month==9 || month==11) && day==31) {
+        msg = "Month "+month+" doesn't have 31 days!";
+        return msg;
+    }
+    if (month == 2) { // check for february 29th
+       var isleap = (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+       if (day>29 || (day==29 && !isleap)) {
+          msg = "February " + year + " doesn't have " + day + " days!";
+          return msg;
+       }
+    }
+ 
+    return msg;  // date is valid
+ },
+
+
+ /**
+  *method hides splash page and reveals the 
+  */
+  toggleNavbar: function () {
+    if (this.navbarToggle) {
+      $( ".container-full" ).fadeOut();
+      $('.navbar').delay(50).fadeIn();
+      this.navbarToggle = false;
+    } else if ( 1 == 2) {
+      $('.navbar').fadeOut();
+      $( ".container-full" ).delay(50).fadeIn();
+    }
+
+  },
+
+
+ /**
+  *method hides splash page and reveals the 
+  */
+  complain: function (errorMessage) {
+    console.log(errorMessage);
+  }
+ 
+};
+
+
+var DQ = new dataquery();
+
+/**
+ * Initialize method is called after document.onready event is fired
+ *  things that go here will setup plots etc.
+ */
+ 
+function init () {
+
+  //size plot area
+     $("#plotArea").css("min-height", function(){ 
+     return $(window).height()/2;
+    });
+  //size table area
+     $("#tableArea").css("min-height", function(){ 
+     return $(window).height()/3;
+    });
+     $("#tableArea").css("max-height", function(){ 
+     return $(window).height()/3;
+    });
+
+  // hide .navbar first
+  $(".navbar").hide();
+  // fade in .navbar
+ 
+  $(function () {
+    $(window).scroll(function () {
+    // set distance user needs to scroll before we fadeIn navbar
+    if ($(this).scrollTop() > 50) {
+      DQ.toggleNavbar();
+    } 
+    });
+  });
+}

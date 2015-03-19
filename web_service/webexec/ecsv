@@ -1,0 +1,99 @@
+#!/usr/local/bin/python
+#Web Service for data presented as a CSV where the datetimes are joined 
+#27 Feb 2011
+#Author: Gunnar Leffler
+
+import sys,os,time,datetime
+import cx_Oracle
+sys.path.append("/usr/dd/common/web_service/webexec")
+import cgi,wslib,atexit
+import cgitb;cgitb.enable()
+
+ws = wslib.ddWebService()
+config = wslib.ddWebServiceConfig()
+valTable = {} #Global variable for output values
+
+def generateBlankLine (count):
+  output = []
+  for i in xrange (count):
+    output.append(None)
+  return output
+
+def addValue (column,count,_datetime,value):
+  global valTable
+  if not _datetime in valTable:
+    valTable[_datetime] = generateBlankLine (count)
+  valTable[_datetime][column] = value
+  
+def outputHTML (config):
+  ws.updateConfig(config)
+  wsData = []
+  if "filename" in config.settings:
+    print "Content-Type: text/csv"
+    print "content-disposition: attachment; filename="+config.settings["filename"]+"\n"
+  else:
+    print "Content-Type: text/plain\n"
+  output = ""
+  output += 'Date Time'
+  colCount = len(config.settings["id"])
+  i = 0
+  for tsid in config.settings["id"]:
+    t = ws.readTS(tsid[0],config.settings["start"],config.settings["end"],tsid[1])
+    if t != None:
+      ts = wslib.timeSeries(t)
+      if "interpolate" in config.settings:
+        interval = ts.parseTimedelta(config.settings["interpolate"])
+        if interval >= datetime.timedelta(seconds=30): #We don't want an absurd interval to tie up system resources
+          ts = ts.interpolate(interval)
+      if "snap" in config.settings:
+        interval = ts.parseTimedelta(config.settings["snap"])
+        if interval >= datetime.timedelta(seconds=30): #We don't want an absurd interval to tie up system resources
+          ts = ts.snap2(interval,interval/2)
+      if "average" in config.settings:
+        interval = ts.parseTimedelta(config.settings["average"])
+        if interval >= datetime.timedelta(seconds=30): #We don't want an absurd interval to tie up system resources
+          ts = ts.average(interval)
+      if "hardsnap" in config.settings:
+        interval = ts.parseTimedelta(config.settings["hardsnap"])
+        if interval >= datetime.timedelta(seconds=30): #We don't want an absurd interval to tie up system resources
+          try:
+            t1 = ts.data[0][0]
+            t2 = datetime.datetime(year=t1.year,month=t1.month,day=t1.day)
+            ts = ts.snap(interval,interval/2,starttime=t2)
+          except:
+            ts = wslib.timeSeries()
+      for d in ts.data:
+        addValue(i,colCount,d[0],d[1])
+    if tsid[1] == "default":
+      tsid[1]=ws.getDefaultUnits (tsid[0])
+    output += ","+tsid[0]+"["+tsid[1]+"]"
+    i += 1
+  output += "\n"
+  print output
+  #display the data
+  keylist = valTable.keys()
+  while None in keylist:
+    keylist.remove(None)
+  keylist.sort()
+  cl = "ws"
+  for key in keylist:
+    output = key.strftime(config.settings["timeformat"])+','
+    for val in valTable[key]:
+      if val != None:
+        output += "%0.3f"%(val)
+      else:
+        output+= ""
+      output += ","
+    print output
+
+#------------------------#
+#Beginning of Service
+#------------------------#
+config.loadConfig("../config/config.json")
+ws.updateConfig(config)
+ws.connect()
+if ws.status != "OK":
+  raise Exception(ws.status)
+atexit.register(ws.disconnect)
+config.parseParameters(cgi.FieldStorage())
+outputHTML(config)

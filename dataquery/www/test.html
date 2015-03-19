@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta http-equiv="X-UA-Compatible" content="IE=9">
+  <meta charset="utf-8">
+  <title>Test</title>
+  <script src="js/vendor/jquery-1.11.1.min.js"></script>
+  <script src="js/moment-with-locales.js"></script>
+  <script>
+    function offsetToDate( offset, date ) {
+      var ret = moment( date );
+      mods = offset.match( /-?\d+\w/g );
+      for( var item in mods ) {
+        mods[item].split( /(-?\d+)(\w)/ );
+        count = RegExp.$1;
+        unit = RegExp.$2;
+        ret = ret.add( count, unit );
+      }
+      return ret.format( "MM/DD/YYYY HHmm" );
+    }
+    function dateToOffset( date ) {
+      var target = moment( date, "MM/DD/YYYY hhmm" );
+      var diff = target.unix() - moment().unix();
+      var ret = "";
+      if( diff < 0 ) {
+        ret += "-";
+        diff *= -1;
+      }
+      var d = moment.duration( diff, 'seconds' );
+      if( v = d.as( 'y' ) | 0 ) { ret += v + 'y'; d.subtract( v, 'y' ); }
+      if( v = d.as( 'M' ) | 0 ) { ret += v + 'M'; d.subtract( v, 'M' ); }
+      if( v = d.as( 'd' ) | 0 ) { ret += v + 'd'; d.subtract( v, 'd' ); }
+      if( v = d.as( 'h' ) | 0 ) { ret += v + 'h'; d.subtract( v, 'h' ); }
+      if( v = d.as( 'm' ) | 0 ) { ret += v + 'm'; }
+      return ret;
+    }
+  </script>
+ </head>
+ <body>
+  <div>
+   <p>Lookback:</p>
+   <input type="text" id="lookback" placeholder="" value="7d"
+    onblur="console.log( offsetToDate( '-' + this.value ) )">
+   <p>Lookforward:</p>
+   <input type="text" id="lookforward" placeholder=""
+    onblur="console.log( offsetToDate( this.value ) )">
+   <hr>
+   <p>Start Date: (mm/dd/yyyy)</p>
+   <input type='text' class="form-control" id = "startdate"
+    onblur="console.log( dateToOffset( this.value ) )">
+   <p>End Date: (mm/dd/yyyy)</p>
+   <input type='text' class="form-control" id = "enddate"
+    onblur="console.log( dateToOffset( this.value ) )">
+  </div>
+ </body>
+</html>

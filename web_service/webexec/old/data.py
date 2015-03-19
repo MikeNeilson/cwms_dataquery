@@ -1,0 +1,257 @@
+#!/usr/local/bin/python
+#Web Service
+#20 Jun 2011
+#Author: Gunnar Leffler
+
+import sys,os
+import cx_Oracle
+import cgi
+import cgitb;cgitb.enable()
+import time
+import datetime
+
+timefmt = "%d-%b-%Y %H:%M" 
+timezone = "PST"
+print "Content-Type: text/html\n"
+dbname = os.uname()[1].upper()[0:3] #determine which database to connect to
+#dbname = "NWP"
+
+#---------------------------------#
+#This method Returns Default Units#
+#---------------------------------#
+defaultUnits = { 'depth':'ft',
+  'depth' :'in',
+  'elev':'ft',
+  'flow':'kcfs',
+  'opening':'ft',
+  'power':'MW',
+  'precip':'in',
+  'pres':'mm-hg',
+  'speed':'mph',
+  'stage':'ft',
+  'stor':'kaf',
+  'temp':'F' }
+
+def getDefaultUnits (tsid):
+  try:
+    #check to see if path is in crit file and return units if found
+    tsid = tsid.lower()
+    tokens = tsid.split(".")
+    #check to see if it is in the default units and return
+    param = tokens[1].split("-")[0]
+    if param in defaultUnits:
+      return defaultUnits [param]
+  except:
+    pass
+  #Default to database default
+  return ""
+
+#-----------------------------------------------------------------#
+#This method connects to the CWMS database and reads a time series#
+#-----------------------------------------------------------------#
+def readTS (tsid, start_time, end_time, in_units):
+  uname  = "cwmsview"
+  pword  = "cwmsview"
+  units = in_units
+  # connect to the database #
+  try :
+    dbconn = cx_Oracle.Connection(user=uname, password=pword, dsn=dbname)
+    if not dbconn : raise Exception, "Cannot connect"
+  except Exception, e:
+    print("\nCould not connect to %s" % dbname)
+    print("\n%s" % str(e))
+    sys.exit(-1)
+  crsr = dbconn.cursor()
+  #office = crsr.callfunc("cwms_util.user_office_id", cx_Oracle.STRING)
+  office = "NWDP" 
+  # retrieve the time series data #
+  ts_cur = dbconn.cursor()
+  if in_units.lower() == "default":
+    units = getDefaultUnits(tsid)
+  crsr.execute('''
+        begin
+        cwms_ts.retrieve_ts(
+                P_AT_TSV_RC =>:ts_cur,
+                P_CWMS_TS_ID =>:tsid,
+                P_UNITS =>:units,
+                P_START_TIME =>to_date(:start_time, 'dd-mon-yyyy hh24mi'),
+                P_END_TIME =>to_date(:end_time,   'dd-mon-yyyy hh24mi'),
+                P_TIME_ZONE =>:timezone,
+                P_OFFICE_ID =>:office);
+        end;''', [ts_cur, tsid, units, start_time, end_time, timezone, office])
+  records = ts_cur.fetchall()
+  ts_cur.close()
+  crsr.close()
+  dbconn.close()
+  return records
+
+def readMultiTS (tsids, start_time, end_time, in_units):
+  uname  = "cwmsview"
+  pword  = "cwmsview"
+  units = in_units
+  # connect to the database #
+  try :
+    dbconn = cx_Oracle.Connection(user=uname, password=pword, dsn=dbname)
+    if not dbconn : raise Exception, "Cannot connect"
+  except Exception, e:
+    print("\nCould not connect to %s" % dbname)
+    print("\n%s" % str(e))
+    sys.exit(-1)
+  crsr = dbconn.cursor()
+  #print("\nConnected to %s as %s" % (dbname, uname))
+  #office = crsr.callfunc("cwms_util.user_office_id", cx_Oracle.STRING)
+  office = "NWDP"
+  # retrieve the time series data #
+  records = []
+  for tsid in tsids:
+    if tsid != "":
+      ts_cur = dbconn.cursor()
+      if in_units.lower() == "default":
+        units = getDefaultUnits(tsid)
+      if in_units.lower() == "specified":
+        tokens = tsid.split(" ")
+        tsid = tokens[0]
+        if len (tokens) > 1:
+          units = tokens[1]
+        else:
+          units = ""
+      try: 
+        crsr.execute('''
+          begin
+          cwms_ts.retrieve_ts(
+                  P_AT_TSV_RC =>:ts_cur,
+                  P_CWMS_TS_ID =>:tsid,
+                  P_UNITS =>:units,
+                  P_START_TIME =>to_date(:start_time, 'dd-mon-yyyy hh24mi'),
+                  P_END_TIME =>to_date(:end_time,   'dd-mon-yyyy hh24mi'),
+                  P_TIME_ZONE =>:timezone,
+                  P_OFFICE_ID =>:office);
+          end;''', [ts_cur, tsid, units, start_time, end_time, timezone, office])
+        records.append(ts_cur.fetchall())
+      except:
+        records.append(None) #Signifies not found
+      ts_cur.close()
+    else:
+      records.append(None)
+  crsr.close()
+  dbconn.close()
+  return records
+
+
+def outputTabSeparated (records):
+  for date_time, value, quality in records :
+    if value is None :
+      print("%s\tnull" % (date_time.strftime(timefmt)))
+    else :
+      print("%s\t%10.3f" % (date_time.strftime(timefmt), value))
+
+def outputQuality (records):
+  for date_time, value, quality in records :
+    if value is None :
+      print("%s\tnull\t%8d" % (date_time.strftime(timefmt), quality))
+    else :
+      print("%s\t%10.3f\t%8d" % (date_time.strftime(timefmt), value, quality))
+
+
+def outputRaw (records):
+  for date_time, value, quality in records :
+    if value is None :
+      print("null")
+    else :
+      print("%10.3f" % value)
+
+def outputHtml (records):
+  print "<table>"
+  for date_time, value, quality in records :
+    if value is None :
+      print("<tr><td>%s</td><td>null</td></tr>" % (date_time.strftime(timefmt)))
+    else :
+      print("<tr><td>%s</td><td>%10.3f</td></tr>" % (date_time.strftime(timefmt), value))
+  print "</table>"
+
+def outputShef (records,pathname):
+  print "<pre>"
+  loc = pathname.split('.')[0]
+  for date_time, value, quality in records :
+    if value is None :
+      print("")
+    else :
+      print(".A %s %s U DH%s /XX %f" % (loc,date_time.strftime("%Y%m%d"),date_time.strftime("%H%M"), value))
+  print "</pre>"
+
+def outputMulti (tsids):
+  iteration = 0
+  results = [""]
+  records = readMultiTS(tsids,start_time,end_time,units)
+  for tsid in tsids: #column labels
+    if tsid.strip() == "": #account for missing tsid
+      tsid = "missing tsid"
+    results[0] += "datetime"+"\t"+tsid+"\t"
+  maxlen = 0
+  for record in records:
+    if record != None:
+      if len (record) > maxlen:
+        maxlen = len(record)
+  for i in range(maxlen):
+    results.append("")
+  for record in records:
+    i = 1
+    if record != None:
+      for date_time, value, quality in record:
+        if value is None :
+          results[i]+=date_time.strftime(timefmt)+"\t#N/A\t"
+        else:
+          results[i]+="%s\t%10.3f\t" % (date_time.strftime(timefmt), value)
+        i += 1
+    for j in range(i,maxlen+1):
+      results[j]+=" \t \t"
+  iteration += 1
+  for line in results:
+    print line+"\t<br>"
+
+#------------------------#
+#Beginning of Service
+#------------------------#
+qs = cgi.FieldStorage()
+tsid = ""
+start_time= ""
+end_time= ""
+units= "default"
+format = "tab"
+if qs.has_key("test"):
+  tsid = "DWR.Flow-In.Ave.1Day.1Day.CBT-RAW"
+  start_time = "01-MAY-2011 1530"
+  end_time   = "15-JUN-2011 1530"
+  units = "cfs"
+if qs.has_key("id"):
+  tsid = qs["id"].value
+if qs.has_key("start"):
+  start_time=qs["start"].value
+if qs.has_key("end"):
+  end_time=qs["end"].value 
+if qs.has_key("units"):
+  units=qs["units"].value
+if qs.has_key("lookback"):
+  curdate = datetime.datetime.now()
+  end_time = curdate.strftime("%d-%b-%Y 2300")
+  startdate = curdate-datetime.timedelta(days=int(qs["lookback"].value))
+  start_time = startdate.strftime("%d-%b-%Y 0000")
+if qs.has_key("midnight"):
+  start_time=qs["midnight"].value+" 0000"
+  end_time=qs["midnight"].value+" 0100"
+if qs.has_key("fmt"):
+  format=qs["fmt"].value
+if qs.has_key("timefmt"):
+  timefmt=qs["timefmt"].value
+if format == "raw":
+  outputRaw(readTS(tsid,start_time,end_time,units))
+if format == "quality":
+  outputQuality(readTS(tsid,start_time,end_time,units))
+elif format == "html":
+  outputHtml(readTS(tsid,start_time,end_time,units))
+elif format == "shef":
+  outputShef(readTS(tsid,start_time,end_time,units),tsid)
+elif format == "multi":
+  outputMulti(tsid.split(','))
+elif format == "tab":
+  outputTabSeparated(readTS(tsid,start_time,end_time,units))

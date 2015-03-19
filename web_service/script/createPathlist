@@ -1,0 +1,229 @@
+#!/usr/local/bin/python
+"""
+createPathlist
+ This program creates a pathlist for various DD products/apps to use
+ 27 September 2011
+ by Gunnar Leffler
+Updates:
+ 18 November 2014 - Pointed to config file and cwms_v_loc for portability purposes
+"""
+
+import os,sys,random,json
+config = json.loads(open("../config/config.json","r").read())
+os.putenv("ORACLE_HOME",config["ORACLE_HOME"])
+import cx_Oracle
+
+locationList = []
+critFile = []
+critIDX = {} #for optomization purposes
+pathnames = []
+oldPOR = {}
+
+
+defaultUnits = config["defaultUnits"]["default"]
+print defaultUnits
+
+def getUnits (path):
+  """check to see if path is in crit file and return units if found 
+  if not found, returns default units as specified in config file
+  """
+  path = path.lower()
+  if path in critIDX:
+    i == critIDX[path]
+    return critFile[i][2]
+  tokens = path.split(".")
+  #check to see if it is in the default units and return
+  param = tokens[1].lower()
+  if param in defaultUnits:
+    return defaultUnits [param]
+  param = tokens[1].split("-")[0].lower()
+  if param in defaultUnits:
+    return defaultUnits [param]
+  #Default to database default
+  return ""
+  
+
+def readTextCSV (path): #Reads a CSV of text into a table
+  theFile = open(path, "r")
+  lines = theFile.readlines()
+  theFile.close()
+  output = []
+  for s in lines:
+    if s.find ('#',0,1) == -1: # ignore commented lines
+      row1 = s.split(',') #split the line by ','
+      row2 = []
+      for n in row1:
+        row2.append(n.strip())#Iterate and Strip Padding
+      output.append (row2)
+  return output
+
+def readTextTSV (path): #Reads a TSV of text into a table
+  theFile = open(path, "r")
+  lines = theFile.readlines()
+  theFile.close()
+  output = []
+  for s in lines:
+    if s.find ('#',0,1) == -1: # ignore commented lines
+      row1 = s.split('\t') #split the line by ','
+      row2 = []
+      for n in row1:
+        row2.append(n.strip())#Iterate and Strip Padding
+      output.append (row2)
+  return output
+
+def readCritFile (path):
+  theFile = open(path, "r")
+  lines = theFile.readlines()
+  theFile.close()
+  output = []
+  for s in lines:
+    if s.find ('#',0,1) == -1: # ignore commented lines
+      try:
+        a = s.strip().split('=') #split the line by '='
+        b = a[1].split(";")[0]
+        output.append ([a[0],b,a[2]])
+      except:
+        print "Error : "+s
+  return output
+
+def writeCritFile (path,crit): #This doesn't write the true crit format
+  theFile = open(path,"w")
+  for line in crit:
+    t = ""
+    for token in line:
+      t += token+"\t"
+    theFile.write(t+"\n")
+  theFile.close()
+
+def makePathList():
+  output = []
+  for path in pathnames:
+    output.append(path+"\t"+getUnits(path)+"\n")
+  return output
+
+def makePORlist ():
+  output = []
+  random.seed()
+  for path in pathnames:
+    if path in oldPOR:
+      por_str = oldPOR[path]
+    else:
+      por_str = "None"
+    if random.randint(0,99) == 1:
+      try:
+        por = getTSextents(path)
+        por_str = str(por[0].year)+"-"+str(por[1].year)
+      except:
+        print "error occured :"+path
+        pass
+    line = path+"\t"+getUnits(path)+"\t"+por_str+"\n"
+    print line
+    output.append(line)
+  return output
+
+def readOldPOR (path):
+  global oldPOR
+  t = readTextTSV(path)
+  for line in t:
+    if len (line) > 2: oldPOR[line[0]] = line[2]
+
+
+def writeFile (path,lst):
+  f = open(path,"w")
+  for s in lst:
+    f.write(s)
+    print s
+  f.close()
+
+def getTSALIAS():
+  output = []
+  crsr = dbconn.cursor()
+  crsr = crsr.execute("select * from cwms_20.AV_ts_alias")
+  records = crsr.fetchall()
+  for line in records:
+    output.append(line[5])
+  crsr.close()
+  return output
+
+def makeMetaList ():
+  output = {}
+  crsr = dbconn.cursor()
+  crsr = crsr.execute("select location_id, bounding_office_id, long_name, elevation, latitude, longitude  from cwms_v_loc where unit_system='EN' and location_kind_id='POINT'")
+  locationList = crsr.fetchall()
+  crsr.close()
+  for l in locationList:
+    output [l[0]] = {
+      "office":l[1],
+      "name"  :l[2],
+      "elevation":l[3],
+      "latitude":l[4],
+      "longitude":l[5],
+      "paths":[]
+    }
+  return json.dumps(output, sort_keys=True, indent=1, separators=(',', ': '))
+  
+def getTS():
+  output = []
+  crsr = dbconn.cursor()
+  crsr = crsr.execute("select * from cwms_v_ts_id")
+  records = crsr.fetchall()
+  for line in records:
+    output.append(line[1])
+  crsr.close()
+  return output
+
+def getTSextents (ts_id, tz = "US/Pacific"):
+  crsr = dbconn.cursor()
+  min = crsr.var(cx_Oracle.DATETIME)
+  max = crsr.var(cx_Oracle.DATETIME)
+  bind_vars = {"min":min,"max":max,"ts_id":ts_id,"tz":tz}
+  crsr.execute("""
+  begin
+  cwms_ts.get_ts_extents(
+        :min,
+        :max,
+        :ts_id,
+        :tz,
+        cwms_util.non_versioned,
+        'NWDP' );
+  end;
+  """,bind_vars)
+  crsr.close()
+  dir(min)
+  return [min.getvalue(),max.getvalue()] 
+
+#======================================================
+# "Entry Point" 
+#======================================================
+
+dbconn = cx_Oracle.Connection(user=config["dbuser"], password=config["dbpassword"], dsn=os.uname()[1].upper()[0:3])
+print "createPathlist output:"
+
+critFile = []
+try:
+  critFile = readCritFile(config["critfile"])
+except:
+  print "Invalid or null crit file specified in config."
+i=0
+for c in critFile:
+  critIDX[c[1].lower]=i
+  i+=1
+#get all available pathnames from database
+pathnames = sorted(getTS(), key = str.lower)+ getTSALIAS()
+for i in xrange(len(pathnames)):
+  pathnames[i]=pathnames[i].strip() #strip \n from end
+  #print pathnames[i]
+
+#writeout metadata stations.json
+metalist = makeMetaList()
+open("../www/stations.json","w").write(metalist)
+
+#write out pathlist with PORs to the script locations
+readOldPOR("../www/pathnames.list")
+pathlist = makePathList()
+porlist = makePORlist()
+writeFile("../www/pathnames.txt",pathlist)
+writeFile("../www/pathnames.list",porlist)
+#Writeout critfile to corrections directory
+if critFile != []:
+  writeCritFile("/usr/apps/corrections/config/critfile.txt",critFile)

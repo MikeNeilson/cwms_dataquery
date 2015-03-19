@@ -1,0 +1,44 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Webservice Frontend</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="style.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src = "jetengine.js"></script>
+<script type="text/javascript" src = "common.js"></script>
+</head>
+<body onload = "initialize();">
+<div style="position: absolute;left: auto; top: 0px;margin:0 auto;text-align:center;width:100%">
+<div style="margin:0 auto;width:1000px">
+<br><br>
+
+<h1>Web Service</h1>
+<div class = "Treb12"><span class = "tagz"><b>Keywords:</b>&nbsp;</span><input type = "text" id = "genSearch" class = "input1" value = " " size = "60"><span class = "tagz">&nbsp;&nbsp;<b>Lookback:</b>&nbsp;</span><input type = "text" id = "lookback" class = "input1" value = "7" size = "10">
+<span class = "tagz"> Format: </span><select name="format" id = "formatSelect">
+<option value="tsv">Tab Separated</option>
+<option value="csv">Comma Separated</option>
+<option value="html">HTML</option>
+<option value="shef">SHEF</option>
+<option value="json">JSON</option>
+<option value="fourcard">USGS Four Card</option>
+</select>
+<input type = "button" value = "Search" class = "buttonBackground" onclick = "searchDB();" id="searchButton">&nbsp;&nbsp;<input type = "button" value = "Clear" class = "buttonBackground" onclick = "clear();"><br>
+
+<br>
+<div style="margin:0 auto;width:1000px;height:380px;background-color:#DEEEFB;display:table;border-radius: 15px;">
+<div style = "width:100%;text-align:center;display: table-cell; vertical-align: middle;">
+<div style="text-align:justify;padding:20;font-size:120%;overflow:hidden;" id="data"><br><br></div>
+
+<div style="text-align:justify;padding:20;font-size:110%" id="results"><br><br></div>
+</table>
+
+This will build pathnames to query the web service.
+
+</div>
+</div>
+</div>
+<br>
+</body>
+
+</html>
+

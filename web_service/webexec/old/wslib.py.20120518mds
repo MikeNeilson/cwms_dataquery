@@ -1,0 +1,212 @@
+#!/usr/local/bin/python
+#Web Service Database Interface Library
+#14 Feb 2012
+#Author: Gunnar Leffler
+
+import sys,os,time,datetime
+import cx_Oracle
+import dateutil.parser as dateparser
+
+class ddWebService:
+  def __init__ (self):
+    #initialize with Default Configuration
+    self.status = "OK"
+    self.configuration = self.getDefaultConfiguration()
+    #Database Cursors
+    self.dbconn = None
+
+  #This method connects to the database
+  def connect(self):
+    try :
+      self.dbconn = cx_Oracle.Connection(user=self.configuration["dbuser"], password=self.configuration["dbpassword"], dsn=self.configuration["dbname"])
+      if not self.dbconn : 
+        self.status = "\nCould not connect to %s\n" % dbname
+        self.status += "\n%s"
+    except Exception,e:
+        self.status = "\nCould not connect to %s\n" % dbname
+        self.status += "\n%s"+str(e)
+      
+
+  #This method disconnects from the database
+  def disconnect(self):
+    self.dbconn.close()
+
+  #This method sets up the default configuration
+  def getDefaultConfiguration (self):
+    conf = {}
+    conf ["timeFormat"] = "%d-%b-%Y %H%M" #Time format 
+    conf ["timeZone"] = "PST"
+    conf ["dbuser"] = "g0cwmspd"
+    conf ["dbpassword"] = "cwms1234"
+    conf ["dbname"] = self.getDBname()
+    conf ["office"] = "NWDP"
+    conf ["defaultUnits"] = { 'depth':'ft',
+      'depth-swe' :'in',
+      'elev':'ft',
+      'flow':'kcfs',
+      'opening':'ft',
+      'power':'MW',
+      'precip':'in',
+      'pres':'mm-hg',
+      'speed':'mph',
+      'stage':'ft',
+      'stor':'kaf',
+      'temp':'F',
+      '%':'%' }
+    return conf
+
+  #Determine which database to connect to
+  #Currently this determines the local DB based on the domain name
+  #TODO: Add functionality to fail over to another database
+  def getDBname (self):
+    return os.uname()[1].upper()[0:3] #determine which database to connect to
+        
+  #takes a pathname data dictionary compliant pathname and returns default units
+  def getDefaultUnits (self,tsid):
+    try:
+      tsid = tsid.lower()
+      tokens = tsid.split(".")
+      #check to see if full Parameter is in default units and return
+      param = tokens[1]
+      if param in self.configuration["defaultUnits"]:
+        return self.configuration["defaultUnits"][param]
+      #check to see if parameter is in default units and return
+      param = tokens[1].split("-")[0]
+      if param in self.configuration["defaultUnits"]:
+        return self.configuration["defaultUnits"][param]
+    except:
+      pass
+    #Default to database default
+    return ""
+
+  #Reads a time series from the database#
+  #tsid       - string
+  #start_time - datetime
+  #end_time   - datetime
+  #in_units   - string
+  def readTS (self, tsid, start_time, end_time, units):
+    timefmt = self.configuration["timeFormat"]
+    timezone = self.configuration["timeZone"]
+    office = self.configuration["office"] 
+    try:
+      crsr = self.dbconn.cursor()
+      # retrieve the time series data #
+      ts_cur = self.dbconn.cursor()
+      if units.lower() == "default":
+        units = self.getDefaultUnits(tsid)
+      crsr.execute('''
+          begin
+          cwms_ts.retrieve_ts(
+                P_AT_TSV_RC =>:ts_cur,
+                P_CWMS_TS_ID =>:tsid,
+                P_UNITS =>:units,
+                P_START_TIME =>to_date(:start_time, 'dd-mon-yyyy hh24mi'),
+                P_END_TIME =>to_date(:end_time,   'dd-mon-yyyy hh24mi'),
+                P_TIME_ZONE =>:timezone,
+                P_OFFICE_ID =>:office);
+          end;''', [ts_cur, tsid, units, start_time.strftime(timefmt), end_time.strftime(timefmt), timezone, office])
+      records = ts_cur.fetchall()
+      ts_cur.close()
+      crsr.close()
+    except Exception, e:
+      self.status = "\nCould not retrieve "+tsid
+      self.status += "\n%s" % str(e)
+      return[]  
+    return records
+
+#==========================================================
+  def readTSJSON (self, tsid, start_time, end_time, units):
+    timefmt = self.configuration["timeFormat"]
+    timezone = self.configuration["timeZone"]
+    office = self.configuration["office"] 
+    try:
+      crsr = self.dbconn.cursor()
+      # retrieve the time series data #
+      ts_cur = self.dbconn.cursor()
+      if units.lower() == "default":
+        units = self.getDefaultUnits(tsid)
+      crsr.execute('''
+          begin
+          cwms_ts.retrieve_ts(
+                P_AT_TSV_RC =>:ts_cur,
+                P_CWMS_TS_ID =>:tsid,
+                P_UNITS =>:units,
+                P_START_TIME =>to_date(:start_time, 'dd-mon-yyyy hh24mi'),
+                P_END_TIME =>to_date(:end_time,   'dd-mon-yyyy hh24mi'),
+                P_TIME_ZONE =>:timezone,
+                P_OFFICE_ID =>:office);
+          end;''', [ts_cur, tsid, units, start_time.strftime(timefmt), end_time.strftime(timefmt), timezone, office])
+      # records = ts_cur.fetchall()
+      
+      records = [ dict(line) for line in [zip([ column[0] for column in ts_cur.description], row) for row in ts_cur.fetchall()] ]
+      
+      ts_cur.close()
+      crsr.close()
+    except Exception, e:
+      self.status = "\nCould not retrieve "+tsid
+      self.status += "\n%s" % str(e)
+      return[]  
+    return records
+#==========================================================
+
+
+class ddWebServiceConfig:
+  def __init__ (self):
+    #initialize with Default Configuration
+    self.status = "OK"
+    self.settings = self.getDefaultSettings()
+
+  #This method sets up the default configuration
+  def getDefaultSettings (self):
+    conf = {}
+    #initialize time parameters
+    conf ["timeformat"] = "%d-%b-%Y %H%M" #Time format 
+    conf ["timezone"] = "PST"
+    conf ["lookback"] = "7"
+    conf ["lookforward"] = "0"
+    conf ["delimiter"] = "|"
+    conf ["end"] = datetime.datetime.now()+datetime.timedelta(days=int(conf["lookforward"]))
+    conf ["start"] = datetime.datetime.now()-datetime.timedelta(days=int(conf["lookback"]))
+    return conf
+
+  #This method parses passed CGI parameters
+  def parseParameters (self, params):
+    p = {}
+    #lowercase dictionary keys
+    for key in params:
+      p[key.lower()] = params[key]
+    if "timeformat" in p:
+      self.settings ["timeformat"] = p["timeformat"].value
+    if "delimiter" in p:
+      self.settings ["delimiter"] = p["delimiter"].value
+    if "lookback" in p:
+      self.settings ["lookback"] = p["lookback"].value
+      self.settings ["start"] = datetime.datetime.now()-datetime.timedelta(days=int(p["lookback"].value))
+    if "lookforward" in p:
+      self.settings ["lookforward"] = p["lookforward"].value
+      self.settings ["end"] = datetime.datetime.now()+datetime.timedelta(days=int(p["lookforward"].value))
+    if "end" in p:
+      self.settings ["end"] = dateparser.parse(p["end"].value,fuzzy=True)
+    if "start" in p:
+      self.settings ["start"] = dateparser.parse(p["start"].value,fuzzy=True)
+    if "id" in p:
+      self.settings ["id"] = self.parseId(p["id"].value,self.settings["delimiter"])
+    if "timezone" in p:
+      self.settings ["timezone"] = p["timezone"].value
+
+  #Parses ID string, returns a list of [tsid,units]
+  def parseId (self,idStr,delimiter):
+    output = []
+    tokens = idStr.split(delimiter)
+    for token in tokens:
+      ts = token.split(":")
+      if len(ts) > 1:
+        output.append([ts[0],ts[1].split("=")[-1]])
+      else:
+        output.append([ts[0],"default"])
+    return output
+      
+
+
+
+

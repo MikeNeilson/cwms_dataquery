@@ -1,0 +1,51 @@
+#!/usr/local/bin/python
+#Web Service Wrapper for graphing service
+#20 Jun 2011
+#Author: Gunnar Leffler
+
+import sys,os,time,datetime
+import cx_Oracle
+sys.path.append("/usr/dd/common/web_service/webexec")
+import cgi,wslib,atexit
+import cgitb;cgitb.enable()
+
+ws = wslib.ddWebService()
+config = wslib.ddWebServiceConfig()
+
+def outputCSV (config):
+  maxLen = 0
+  wsData = []
+  print "Content-Type: text/plain\n"
+  #read the data and find the max length
+  for tsid in config.settings["id"]:
+    t = ws.readTS(tsid[0],config.settings["start"],config.settings["end"],tsid[1])
+    if t != None:
+      if len(t) > maxLen: maxLen = len(t)
+    else:
+      t = []
+    wsData.append(t)
+    print ("timestamp,\""+tsid[0]+"\",")
+  #display the data
+  for i in xrange(0,maxLen):
+    output = ""
+    for d in wsData:
+      if i < len(d):
+        if d[i][1] != None:
+          output += "%s,%10.3f,"%(d[i][0].strftime(config.settings["timeformat"]),d[i][1])
+        else:
+          output+= "%s,,"%(d[i][0].strftime(config.settings["timeformat"]))
+      else:
+        output+= (",,")
+    print output[0:-2]
+
+#------------------------#
+#Beginning of Service
+#------------------------#
+config.loadConfig("../config/config.json")
+ws.updateConfig(config)
+ws.connect()
+if ws.status != "OK":
+  raise Exception(ws.status)
+atexit.register(ws.disconnect)
+config.parseParameters(cgi.FieldStorage())
+outputCSV(config)
