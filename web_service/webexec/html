@@ -47,7 +47,7 @@ def outputHTML (config):
         ts = wslib.timeSeries(t)
         interval = ts.parseTimedelta(config.settings["snap"])
         if interval >= datetime.timedelta(seconds=30): #We don't want an absurd interval to tie up system resources
-          t = ts.snap2(interval,interval/2).data
+          t = ts.snap(interval,interval/2).data
       if "hardsnap" in config.settings:
         ts = wslib.timeSeries(t)
         interval = ts.parseTimedelta(config.settings["hardsnap"])

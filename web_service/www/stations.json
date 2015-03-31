@@ -2003,8 +2003,8 @@
   "elevation": null,
   "latitude": 48.7540124,
   "longitude": -121.5470821,
-  "name": "BAKER RIVER AB BLUM CREEK NEAR CONCRETE, WA",
-  "office": null,
+  "name": "BAKER RIVER AB BLUM CREEK NEAR CONCRETE&#44 WA",
+  "office": "NWS",
   "paths": []
  },
  "BADM": {
@@ -10799,6 +10799,14 @@
   "office": "NWP",
   "paths": []
  },
+ "ESSM": {
+  "elevation": null,
+  "latitude": 48.275000000000006,
+  "longitude": -113.6027778,
+  "name": "Middle Fork Flathead River near Essex",
+  "office": null,
+  "paths": []
+ },
  "ESTO": {
   "elevation": 286.93,
   "latitude": 45.299842999999996,
@@ -14239,6 +14247,46 @@
   "office": "NWS",
   "paths": []
  },
+ "HGH-Gate 1": {
+  "elevation": null,
+  "latitude": 48.3411111,
+  "longitude": -114.0133333,
+  "name": "Gate 1",
+  "office": "NWS",
+  "paths": []
+ },
+ "HGH-Gate 2": {
+  "elevation": null,
+  "latitude": 48.3411111,
+  "longitude": -114.0133333,
+  "name": "Gate 2",
+  "office": "NWS",
+  "paths": []
+ },
+ "HGH-Gate 3": {
+  "elevation": null,
+  "latitude": 48.3411111,
+  "longitude": -114.0133333,
+  "name": "Gate 3",
+  "office": "NWS",
+  "paths": []
+ },
+ "HGH-HGHM": {
+  "elevation": null,
+  "latitude": 48.3411111,
+  "longitude": -114.013333333333,
+  "name": null,
+  "office": "NWS",
+  "paths": []
+ },
+ "HGH-Ring Gate": {
+  "elevation": null,
+  "latitude": 48.3411111,
+  "longitude": -114.0133333,
+  "name": "Ring Gate",
+  "office": "NWS",
+  "paths": []
+ },
  "HGHM": {
   "elevation": 3040.0,
   "latitude": 48.3565778,
@@ -17020,7 +17068,7 @@
   "latitude": 47.201719999999995,
   "longitude": -121.77972,
   "name": "LYNN LAKE",
-  "office": null,
+  "office": "NWS",
   "paths": []
  },
  "LAMO": {
@@ -21628,7 +21676,7 @@
   "latitude": null,
   "longitude": null,
   "name": null,
-  "office": null,
+  "office": "NWS",
   "paths": []
  },
  "MMV": {
@@ -22324,7 +22372,7 @@
   "latitude": 45.999722,
   "longitude": -121.543611,
   "name": "Mt Adams Ranger Station Nr Trout Lake  MTAW1",
-  "office": "NWS",
+  "office": "NWP",
   "paths": []
  },
  "MTBB": {
@@ -22636,7 +22684,7 @@
   "latitude": null,
   "longitude": null,
   "name": "MYRI-RFC-Precip&Temp",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "MYSM": {
@@ -23644,7 +23692,7 @@
   "latitude": 46.731389,
   "longitude": -121.570278,
   "name": "Ohanapecosh RAWS near Packwood 10NNE",
-  "office": "NWP",
+  "office": "NWS",
   "paths": []
  },
  "OHAW-Sensor2": {
@@ -23748,7 +23796,7 @@
   "latitude": null,
   "longitude": null,
   "name": null,
-  "office": null,
+  "office": "NWS",
   "paths": []
  },
  "OLAI": {
@@ -25244,7 +25292,7 @@
   "latitude": 47.70305556,
   "longitude": -116.9777778,
   "name": "SPOKANE RIVER NR POST FALLS ID",
-  "office": null,
+  "office": "NWS",
   "paths": []
  },
  "POTI": {
@@ -26817,10 +26865,10 @@
  },
  "ROSW": {
   "elevation": null,
-  "latitude": null,
-  "longitude": null,
+  "latitude": 48.733332999999995,
+  "longitude": -121.066667,
   "name": "ROSW_RFC_Precip",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "ROZW": {
@@ -27372,7 +27420,7 @@
   "latitude": 47.15992,
   "longitude": -121.42172,
   "name": "SAWMILL RIDGE",
-  "office": null,
+  "office": "NWS",
   "paths": []
  },
  "SBCO": {
@@ -27705,10 +27753,10 @@
  },
  "SEAW": {
   "elevation": null,
-  "latitude": null,
-  "longitude": null,
+  "latitude": 47.687222,
+  "longitude": -122.255278,
   "name": "SEAW_RFC_Precip",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "SECO": {
@@ -27865,10 +27913,10 @@
  },
  "SFF": {
   "elevation": null,
-  "latitude": null,
-  "longitude": null,
+  "latitude": 47.666667,
+  "longitude": -117.333333,
   "name": "SFF-RFC-Precip (Felts Fld)",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "SFFI": {
@@ -28497,10 +28545,10 @@
  },
  "SLAM": {
   "elevation": null,
-  "latitude": null,
-  "longitude": null,
+  "latitude": 45.911111,
+  "longitude": -113.73944399999999,
   "name": "SLAM_RFC_Precip",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "SLAY": {
@@ -29700,7 +29748,7 @@
   "latitude": 45.949166999999996,
   "longitude": -120.664722,
   "name": "Satus Pass Near Goldendale  12NE  SSPW1",
-  "office": "NWS",
+  "office": "NWP",
   "paths": []
  },
  "SSSO": {
@@ -29995,8 +30043,8 @@
   "elevation": null,
   "latitude": 48.3017792,
   "longitude": -121.418174,
-  "name": "SUIATTLE RIVER ABOVE ALL CREEK NR DARRINGTON, WA",
-  "office": null,
+  "name": "SUIATTLE RIVER ABOVE ALL CREEK NR DARRINGTON&#44 WA",
+  "office": "NWS",
   "paths": []
  },
  "SULM": {
@@ -30540,7 +30588,7 @@
   "latitude": 47.25,
   "longitude": -122.4166667,
   "name": "Tacoma",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "TCMO": {
@@ -30580,7 +30628,7 @@
   "latitude": null,
   "longitude": null,
   "name": "TCRM_RFC_Precip",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "TCSI": {
@@ -32916,7 +32964,7 @@
   "latitude": null,
   "longitude": null,
   "name": "WCSW-RFC-Precip&Temp",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "WCTO": {
@@ -33705,16 +33753,16 @@
  },
  "WNPW": {
   "elevation": null,
-  "latitude": null,
-  "longitude": null,
+  "latitude": 48.45,
+  "longitude": -120.183333,
   "name": "WNPW-RFC",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "WNPW-Sensor3": {
   "elevation": null,
-  "latitude": null,
-  "longitude": null,
+  "latitude": 48.45,
+  "longitude": -120.183333,
   "name": "WNPW-RFC",
   "office": "NWS",
   "paths": []
@@ -34188,7 +34236,7 @@
   "latitude": null,
   "longitude": null,
   "name": "WYDW_RFC_Precip",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "WYGW": {
@@ -34244,7 +34292,7 @@
   "latitude": 49.25,
   "longitude": -121.7694444,
   "name": null,
-  "office": "NWS",
+  "office": "NWP",
   "paths": []
  },
  "YAKM": {
@@ -34284,7 +34332,7 @@
   "latitude": 49.08,
   "longitude": -121.6994444,
   "name": null,
-  "office": "NWS",
+  "office": "NWP",
   "paths": []
  },
  "YDC": {
@@ -34532,7 +34580,7 @@
   "latitude": null,
   "longitude": null,
   "name": "YSI_RFC_Precip",
-  "office": "NWS",
+  "office": "NWW",
   "paths": []
  },
  "YSM": {

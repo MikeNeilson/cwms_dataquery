@@ -26,6 +26,7 @@ var dataquery = function() {
     this.lookforward = 0;
     this.enddate = "";
     this.status = "OK";
+    this.timezone = "PST";
     //-----Data
     this.data = {}; //hydroJSON object for data currently being used
     this.catalog = {}; //hydroJSON object for catalog currently being used
@@ -249,8 +250,14 @@ dataquery.prototype = {
      * human: Gunnar
      */
 
-    exportCSV: function() {
+    export: function(svc) {
         var ids = [];
+        var svcPath = this.csvServicePath;
+        var fname = "dataquery.csv"
+        if (svc == "html"){
+          svcPath = this.htmlServicePath;
+          fname = ""
+        }
         for (var sta in this.data) {
             for (var tsid in this.data[sta]["timeseries"]) {
                 ids.push(tsid + ":units=" + this.data[sta]["timeseries"][tsid]["units"])
@@ -261,12 +268,13 @@ dataquery.prototype = {
             "backward": "lookback",
             "forward": "lookforward",
             "startdate": "startdate",
-            "enddate": "enddate"
+            "enddate": "enddate",
+            "timezone": "timezone"
         };
         var payload = {
             "id": ids.join("|"),
             "headers": "true",
-            "filename": "dataquery.csv"
+            "filename": fname
         };
         for (var key in inputs) {
             if (key in inputlist) {
@@ -274,7 +282,7 @@ dataquery.prototype = {
             }
         }
 
-        window.open(this.csvServicePath + "?" + $.param(payload), '_newtab');
+        window.open(svcPath + "?" + $.param(payload), '_newtab');
     },
 
     /**
@@ -332,7 +340,8 @@ dataquery.prototype = {
             "backward": "lookback",
             "forward": "lookforward",
             "startdate": "startdate",
-            "enddate": "enddate"
+            "enddate": "enddate",
+            "timezone": "timezone"
         };
         var payload = {
             "id": ids.join("|"),
@@ -459,6 +468,7 @@ dataquery.prototype = {
     validateInput: function() {
         //var output = '{ "backward" :$("#lookback").val() }'; //Stub for validateInput
         var output = {};
+        output["timezone"] = document.getElementById("timezone").value; 
         var datePat = /^([0-9]{2})\/([0-9]{2})\/([0-9]{4})$/;
 
         //var lb = document.getElementById("lookback").getAttribute("placeholder");
@@ -777,7 +787,7 @@ function init() {
     $("#WYselect").change(function(){
       var dt = $("#WYselect").val();
       $("#startdate").val("10/01/"+parseInt(dt-1)+" 0000");
-      $("#enddate").val("10/1/"+dt+" 0000");
+      $("#enddate").val("10/01/"+dt+" 0000");
       $("#lookback").val("");
       $("#lookforward").val("");
     });

@@ -5,7 +5,7 @@
  "dbpassword"  : "ENTER_DB_PW_HERE",
  "dbname"      : "detect",
  "timezone"    : "PST",
- "office"      : "NWDP",
+ "office"      : "ENTER_CWMS_OFFICE_HERE",
  "timeFormat"  : "%d-%b-%Y %H%M",
  "remarks"     : "Default configuration, Please update. See README.md for details.",
  "version"     : "2.0",

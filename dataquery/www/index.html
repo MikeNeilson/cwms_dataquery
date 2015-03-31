@@ -135,6 +135,18 @@
               <button class="btn btn-block btn-primary" type="button" onclick = "DQ.toggleTable();" id = "toggleTable">Data On</button><br>
               <button class="btn btn-block btn-primary" type="button" onclick = "DQ.toggleAdvanced();" id = "advanced">Advanced Options</button><br>
               <div id="advancedArea">
+              <p style = "cursor: help;" data-toggle="tooltip" data-placement="top" title="Select Timezone for display">Timezone</p>
+              <select class="form-control" id = "timezone">
+                <option value ="PST">PST</option>
+                <option value ="MST" selected>PDT</option>
+                <option value ="MST">MST</option>
+                <option value ="CST">MDT</option>
+                <option value ="CST">CST</option>
+                <option value ="EST">CDT</option>
+                <option value ="EST">EST</option>
+                <option value ="EDT">EDT</option>
+                <option value ="GMT">GMT</option>
+              </select>
               <p style = "cursor: help;" data-toggle="tooltip" data-placement="top" title="Select the a specified water year as the timewindow
               (Oct 1 - Sep 30)">Water Year:</p>
               <select class="form-control" id = "WYselect">
@@ -144,7 +156,8 @@
               <p>Average:</p>
               <input type="text" class="center-block form-control input-lg" id="avgBox" placeholder="enter interval: (e.g. 6h)">
               <hr>
-              <button class="btn btn-block btn-primary" type="button" onclick = "DQ.exportCSV();" id = "exportCSV">export CSV</button><br>
+              <button class="btn btn-block btn-primary" type="button" onclick = "DQ.export('html');" id = "dataWindow">Data Window</button><br>
+              <button class="btn btn-block btn-primary" type="button" onclick = "DQ.export('csv');" id = "exportCSV">export CSV</button><br>
               <button class="btn btn-block btn-primary" type="button" onclick = "DQ.exportJSON();" id = "exportJSON">export JSON</button><br>
               <button class="btn btn-block btn-primary" type="button" onclick = "DQ.makeLink();" id = "makeLink">Make Link</button><br>
               </div>
